@@ -1,0 +1,57 @@
+{
+  "_comment": "TEST FIXTURE ONLY - synthetic response shaped like the documented SerpApi Google Flights format. Prices are NOT real and this file is never loaded by the application.",
+  "search_metadata": {"id": "test-fixture", "status": "Success"},
+  "best_flights": [
+    {
+      "flights": [
+        {
+          "departure_airport": {"name": "Sarajevo International Airport", "id": "SJJ", "time": "2026-12-31 21:10"},
+          "arrival_airport": {"name": "Leonardo da Vinci International Airport", "id": "FCO", "time": "2026-12-31 22:35"},
+          "duration": 85,
+          "airplane": "Airbus A321neo",
+          "airline": "Wizz Air Malta",
+          "travel_class": "Economy",
+          "flight_number": "W4 6160",
+          "extensions": ["Carry-on bag not included"]
+        }
+      ],
+      "total_duration": 85,
+      "price": 111,
+      "type": "One way",
+      "booking_token": "fixture-token"
+    }
+  ],
+  "other_flights": [
+    {
+      "flights": [
+        {
+          "departure_airport": {"name": "Sarajevo International Airport", "id": "SJJ", "time": "2026-12-31 06:00"},
+          "arrival_airport": {"name": "Vienna International Airport", "id": "VIE", "time": "2026-12-31 07:20"},
+          "airline": "Austrian",
+          "flight_number": "OS 770"
+        },
+        {
+          "departure_airport": {"name": "Vienna International Airport", "id": "VIE", "time": "2026-12-31 09:00"},
+          "arrival_airport": {"name": "Leonardo da Vinci International Airport", "id": "FCO", "time": "2026-12-31 10:40"},
+          "airline": "Austrian",
+          "flight_number": "OS 501"
+        }
+      ],
+      "layovers": [{"duration": 100, "name": "Vienna", "id": "VIE"}],
+      "price": 222,
+      "type": "One way"
+    },
+    {
+      "flights": [
+        {
+          "departure_airport": {"name": "Sarajevo International Airport", "id": "SJJ", "time": "2026-12-31 13:00"},
+          "arrival_airport": {"name": "Leonardo da Vinci International Airport", "id": "FCO", "time": "2026-12-31 14:25"},
+          "airline": "ITA",
+          "flight_number": "AZ 515"
+        }
+      ],
+      "type": "One way"
+    }
+  ],
+  "price_insights": {"lowest_price": 111, "price_level": "typical", "typical_price_range": [90, 160]}
+}

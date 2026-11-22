@@ -1,25 +1,28 @@
 # FareWatch ✈️
 
-**A personal flight-price tracker that uses real observed fares, not invented predictions.**
+**Find the cheapest flights from Sarajevo, and see whether today's price is actually a good deal.**
 
-I built FareWatch to find a cheap fare for a New Year's trip from **Sarajevo to Rome**
-(Wizz Air W4 6160 on 31 Dec 2026, back on W4 6159 on 5 Jan 2027). It tracks prices over time, shows how today's
-fare compares with recent history, and avoids comparing fares that differ in baggage or fees.
+FareWatch started as a tool to find a cheap fare for a New Year's trip from Sarajevo to Rome. It's now a
+small flight-deals site built on real observed fares, not invented predictions.
 
 ## Features
 
-- **Real data only.** Fares come from manual entries (with a source link), CSV imports, or the optional
-  [SerpApi](https://serpapi.com/google-flights-api) Google Flights API. Every price shows a badge with its source.
-- **About 60 days of price history in one search.** Google Flights' recorded daily lowest prices are imported
-  automatically.
+- **Explore from Sarajevo.** The homepage shows the cheapest destinations right now as deal cards (price,
+  cheapest date, airline, nonstop or not). You can switch between one-way and round trip and filter by month.
+  The data comes from Google Travel Explore via [SerpApi](https://serpapi.com/google-travel-explore-api).
+- **Search any destination.** Type a city or airport and a date. A route page opens with the current fare, about
+  60 days of Google Flights price history, a chart and a price status.
+- **My trips.** Every route you search is saved. The original New Year in Rome trip has its own two-leg dashboard.
+- **Real data only.** Fares come from Google Flights via [SerpApi](https://serpapi.com/google-flights-api), or
+  from manual entries with a source link. Every price shows a badge with its source.
 - **Analysis.** Min, max, median, 7-day median, volatility, drop detection, and days to departure, plus a
   simple status: *Attractive*, *Normal*, *Expensive* or *Insufficient data*. The status is a heuristic, not a
   forecast.
 - **Only comparable fares are compared.** Baggage, taxes, passenger count and Discount Club member fares are
   kept separate.
 - **Compare nearby dates.** Price is plotted against days before departure, with weekday and holiday flags.
-- **Alerts.** Price-threshold and percentage-drop alerts, with de-duplication.
-- **Budget-safe automation.** An opt-in scheduler (Europe/Sarajevo time) with daily and monthly query caps.
+- **Budget-safe.** Deals are cached and refresh at most every 6 hours. Daily and monthly search caps protect the
+  free SerpApi plan (250 searches/month).
 - **Honest by design.** Demo data is watermarked. Unknown baggage fees stay unknown. The app never books
   anything.
 
@@ -27,7 +30,7 @@ fare compares with recent history, and avoids comparing fares that differ in bag
 
 **Frontend:** React · TypeScript · Vite · Tailwind CSS · Recharts
 **Backend:** Python 3.12 · FastAPI · SQLAlchemy · Pydantic · SQLite (PostgreSQL-ready)
-**Testing:** pytest (69 tests, no network calls)
+**Testing:** pytest (79 tests, no network calls)
 
 ## Quick start
 

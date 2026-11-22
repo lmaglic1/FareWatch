@@ -12,6 +12,8 @@ os.environ["SERPAPI_API_KEY"] = ""
 os.environ["COLLECTOR_ENABLED"] = "false"
 os.environ["DEMO_MODE"] = "false"
 os.environ["ALERT_EMAIL_ENABLED"] = "false"
+os.environ["MAX_QUERIES_PER_DAY"] = "6"
+os.environ["HOME_AIRPORT"] = "SJJ"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402

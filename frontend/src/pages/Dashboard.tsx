@@ -91,7 +91,7 @@ function LegCard({ leg }: { leg: DashboardLeg }) {
             Data freshness: {leg.analysis.last_valid_quote_at ? ago(leg.analysis.last_valid_quote_at) : "no data"}
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link className="btn-ghost" to={`/flights/${f.id}`}>Details & chart</Link>
+            <Link className="btn-ghost" to={`/route/${f.origin}/${f.destination}/${f.flight_date}`}>Price history & chart</Link>
             {leg.booking_links.map((b) => (
               <a key={b.url} className="btn-ghost" href={b.url} target="_blank" rel="noopener noreferrer" title={b.note}>
                 {b.label} ↗

@@ -265,3 +265,44 @@ class AppSetting(Base):
 
     key: Mapped[str] = mapped_column(String(60), primary_key=True)
     value: Mapped[str] = mapped_column(Text)
+
+
+class ExploreSnapshot(Base):
+    """One Google Travel Explore result set (cheapest destinations from an origin)."""
+
+    __tablename__ = "explore_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    origin: Mapped[str] = mapped_column(String(3), index=True)
+    trip_type: Mapped[str] = mapped_column(String(12))  # one_way | round_trip
+    month: Mapped[int] = mapped_column(Integer, default=0)  # 0 = any of next 6 months
+    travel_duration: Mapped[int] = mapped_column(Integer, default=2)  # round trip: 1 weekend, 2 week, 3 two weeks
+    currency: Mapped[str] = mapped_column(String(3))
+    passengers: Mapped[int] = mapped_column(Integer, default=1)
+    fetched_at_utc: Mapped[datetime] = mapped_column(UTCDateTime, index=True)
+    provider_run_id: Mapped[int | None] = mapped_column(ForeignKey("provider_runs.id"), nullable=True)
+
+    destinations: Mapped[list[ExploreDestination]] = relationship(
+        back_populates="snapshot", cascade="all, delete-orphan", order_by="ExploreDestination.price_minor"
+    )
+
+
+class ExploreDestination(Base):
+    __tablename__ = "explore_destinations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    snapshot_id: Mapped[int] = mapped_column(ForeignKey("explore_snapshots.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    country: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    airport_code: Mapped[str] = mapped_column(String(3))
+    start_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    price_minor: Mapped[int] = mapped_column(BigInteger)
+    currency: Mapped[str] = mapped_column(String(3))
+    airline: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    airline_code: Mapped[str | None] = mapped_column(String(3), nullable=True)
+    stops: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    duration_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    thumbnail: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+
+    snapshot: Mapped[ExploreSnapshot] = relationship(back_populates="destinations")

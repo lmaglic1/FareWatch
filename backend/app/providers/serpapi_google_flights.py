@@ -25,6 +25,7 @@ from __future__ import annotations
 import logging
 import re
 import time as _time
+from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Any
@@ -210,6 +211,80 @@ def interpret(payload: dict[str, Any], **kw: Any) -> SearchResult:
     return result
 
 
+@dataclass
+class ExploreDestinationData:
+    destination_id: str | None
+    name: str
+    country: str | None
+    airport_code: str
+    start_date: date | None
+    end_date: date | None
+    price: Decimal
+    currency: str
+    airline: str | None
+    airline_code: str | None
+    stops: int | None
+    duration_minutes: int | None
+    thumbnail: str | None
+
+
+@dataclass
+class ExploreResult:
+    status: str  # success | not_found | error
+    queries_used: int
+    destinations: list[ExploreDestinationData] = field(default_factory=list)
+    http_status: int | None = None
+    message: str = ""
+
+
+def _parse_date(v: Any) -> date | None:
+    try:
+        return date.fromisoformat(str(v)[:10]) if v else None
+    except ValueError:
+        return None
+
+
+def _int_or_none(v: Any) -> int | None:
+    try:
+        return int(v) if v is not None and v != "" else None
+    except (TypeError, ValueError):
+        return None
+
+
+def parse_explore(payload: dict[str, Any], currency: str) -> list[ExploreDestinationData]:
+    """Parse Travel Explore ``destinations``. Entries without a price or airport code are skipped."""
+    out: list[ExploreDestinationData] = []
+    for d in payload.get("destinations") or []:
+        code = str((d.get("destination_airport") or {}).get("code") or "").upper()
+        raw_price = d.get("flight_price")
+        if len(code) != 3 or raw_price in (None, ""):
+            continue
+        try:
+            price = to_decimal(raw_price)
+        except ValueError:
+            continue
+        if price <= 0:
+            continue
+        thumb = d.get("thumbnail")
+        out.append(ExploreDestinationData(
+            destination_id=d.get("destination_id"),
+            name=str(d.get("name") or code),
+            country=d.get("country"),
+            airport_code=code,
+            start_date=_parse_date(d.get("start_date")),
+            end_date=_parse_date(d.get("end_date")),
+            price=price,
+            currency=currency,
+            airline=d.get("airline"),
+            airline_code=d.get("airline_code"),
+            stops=_int_or_none(d.get("number_of_stops")),
+            duration_minutes=_int_or_none(d.get("flight_duration")),
+            thumbnail=thumb if isinstance(thumb, str) and thumb.startswith("https://") else None,
+        ))
+    out.sort(key=lambda x: x.price)
+    return out
+
+
 class SerpApiGoogleFlightsProvider:
     name = PROVIDER_NAME
 
@@ -264,6 +339,23 @@ class SerpApiGoogleFlightsProvider:
         params = self.build_params(
             origin=origin, destination=destination, travel_date=travel_date, currency=currency, adults=adults
         )
+        payload, attempts, status, error = self._fetch(params, max_attempts)
+        if payload is None:
+            return SearchResult(status="error", queries_used=attempts, http_status=status, message=error)
+        return interpret(
+            payload, origin=origin, destination=destination, travel_date=travel_date,
+            currency=currency.upper(), expected_flight_number=expected_flight_number,
+            queries_used=attempts, http_status=status,
+        )
+
+    def _fetch(
+        self, params: dict[str, str], max_attempts: int | None = None
+    ) -> tuple[dict[str, Any] | None, int, int | None, str]:
+        """GET /search with bounded retries (network errors, 429, 5xx only).
+
+        Returns (payload or None, attempts used, last HTTP status, error message).
+        A 4xx response is returned as a payload carrying an ``error`` field.
+        """
         attempts = 0
         last_error = ""
         last_status: int | None = None
@@ -281,31 +373,63 @@ class SerpApiGoogleFlightsProvider:
                     log.warning("SerpApi transport error (attempt %d): %s", attempts, type(exc).__name__)
                 else:
                     last_status = resp.status_code
-                    if resp.status_code in (429,) or resp.status_code >= 500:
+                    if resp.status_code == 429 or resp.status_code >= 500:
                         last_error = f"HTTP {resp.status_code}"
                     else:
                         try:
                             payload = resp.json()
                         except ValueError:
-                            return SearchResult(
-                                status="error", queries_used=attempts, http_status=resp.status_code,
-                                message="Response was not valid JSON",
-                            )
+                            return None, attempts, resp.status_code, "Response was not valid JSON"
                         if resp.status_code >= 400 and not payload.get("error"):
                             payload = {"error": f"HTTP {resp.status_code}"}
-                        return interpret(
-                            payload, origin=origin, destination=destination, travel_date=travel_date,
-                            currency=currency.upper(), expected_flight_number=expected_flight_number,
-                            queries_used=attempts, http_status=resp.status_code,
-                        )
+                        return payload, attempts, resp.status_code, ""
                 if attempt < limit - 1:
                     self._sleep(1.5 * (attempt + 1))
         finally:
             if self._client is None:
                 client.close()
-        return SearchResult(
-            status="error", queries_used=attempts, http_status=last_status,
-            message=redact(f"Gave up after {attempts} attempt(s): {last_error}"),
+        return None, attempts, last_status, redact(f"Gave up after {attempts} attempt(s): {last_error}")
+
+    def explore(
+        self,
+        *,
+        origin: str,
+        round_trip: bool,
+        month: int,
+        travel_duration: int,
+        currency: str,
+        adults: int,
+        max_attempts: int | None = None,
+    ) -> ExploreResult:
+        """Google Travel Explore: cheapest destinations from ``origin`` (one search)."""
+        if not self.configured:
+            return ExploreResult(status="error", queries_used=0, message="SERPAPI_API_KEY is not set")
+        params = {
+            "engine": "google_travel_explore",
+            "departure_id": origin.upper(),
+            "type": "1" if round_trip else "2",
+            "travel_mode": "1",  # flights only
+            "month": str(month),
+            "currency": currency.upper(),
+            "adults": str(adults),
+            "travel_class": "1",
+            "hl": self.settings.serpapi_hl,
+            "api_key": self.settings.serpapi_api_key,
+        }
+        if round_trip:
+            params["travel_duration"] = str(travel_duration)
+        if self.settings.serpapi_gl:
+            params["gl"] = self.settings.serpapi_gl
+        payload, attempts, status, error = self._fetch(params, max_attempts)
+        if payload is None:
+            return ExploreResult(status="error", queries_used=attempts, http_status=status, message=error)
+        if payload.get("error"):
+            return ExploreResult(status="error", queries_used=attempts, http_status=status,
+                                 message=redact(str(payload["error"])))
+        dests = parse_explore(payload, currency.upper())
+        return ExploreResult(
+            status="success" if dests else "not_found", queries_used=attempts, http_status=status,
+            destinations=dests, message=f"{len(dests)} destination(s) with prices",
         )
 
     def account(self) -> dict[str, Any]:

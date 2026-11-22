@@ -19,7 +19,7 @@ from . import __version__, scheduler
 from .config import get_settings
 from .db import SessionLocal, init_db
 from .flights import seed_targets
-from .routers import alerts, dashboard, extras, flights, observations, system
+from .routers import alerts, dashboard, explore, extras, flights, observations, system
 
 # Money must never pass through binary floats: FastAPI's default encoder turns a
 # bare Decimal into a float for plain-dict responses. Serialize it as an exact
@@ -74,5 +74,5 @@ async def unhandled_handler(_: Request, exc: Exception):
     return JSONResponse(status_code=500, content={"detail": "Internal server error", "type": type(exc).__name__})
 
 
-for r in (dashboard.router, flights.router, observations.router, alerts.router, extras.router, system.router):
+for r in (explore.router, dashboard.router, flights.router, observations.router, alerts.router, extras.router, system.router):
     app.include_router(r)

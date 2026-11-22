@@ -31,6 +31,7 @@ class Settings(BaseSettings):
 
     # --- General ---------------------------------------------------------
     app_timezone: str = "Europe/Sarajevo"
+    home_airport: str = "SJJ"
     default_currency: str = "EUR"
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
     log_level: str = "INFO"
@@ -54,7 +55,7 @@ class Settings(BaseSettings):
     # --- Collector --------------------------------------------------------
     collector_enabled: bool = False
     collector_times: str = "08:00,20:00"  # local times in app_timezone
-    max_queries_per_day: int = 6
+    max_queries_per_day: int = 15
     min_minutes_between_checks: int = 120
     collector_include_comparisons: bool = True
     comparison_window_start: str = "2026-11-01"

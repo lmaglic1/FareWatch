@@ -1,34 +1,26 @@
 import { useState } from "react";
-import { NavLink, Route, Routes, useLocation } from "react-router-dom";
-import About from "./pages/About";
-import Alerts from "./pages/Alerts";
+import { Link, NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import Compare from "./pages/Compare";
 import Dashboard from "./pages/Dashboard";
-import Extras from "./pages/Extras";
-import FlightDetails from "./pages/FlightDetails";
-import History from "./pages/History";
-import Settings from "./pages/Settings";
+import Explore from "./pages/Explore";
+import RoutePage from "./pages/Route";
+import Trips from "./pages/Trips";
 
 const NAV = [
-  { to: "/", label: "Dashboard" },
-  { to: "/flights", label: "Flight Details" },
-  { to: "/compare", label: "Compare Flights" },
-  { to: "/history", label: "Price History" },
-  { to: "/alerts", label: "Alerts" },
-  { to: "/extras", label: "Bags & Promotions" },
-  { to: "/settings", label: "Settings" },
-  { to: "/about", label: "About the Algorithm" },
+  { to: "/", label: "Explore" },
+  { to: "/trips", label: "My trips" },
+  { to: "/compare", label: "Compare dates" },
 ];
 
 function Logo() {
   return (
-    <div className="flex items-center gap-2">
+    <Link to="/" className="flex items-center gap-2" aria-label="FareWatch home">
       <svg viewBox="0 0 32 32" className="h-7 w-7" aria-hidden>
         <rect width="32" height="32" rx="8" fill="var(--accent)" />
         <path d="M7 21l18-7-18-7 4 7-4 7z" fill="#fff" />
       </svg>
       <span className="text-[15px] font-semibold tracking-tight text-ink">FareWatch</span>
-    </div>
+    </Link>
   );
 }
 
@@ -36,56 +28,48 @@ export default function App() {
   const [open, setOpen] = useState(false);
   const loc = useLocation();
   const linkCls = ({ isActive }: { isActive: boolean }) =>
-    `block rounded-lg px-3 py-2 text-sm transition ${isActive ? "bg-raised font-medium text-ink shadow-card" : "text-ink-2 hover:text-ink"}`;
+    `rounded-lg px-3 py-2 text-sm transition ${isActive ? "bg-raised font-medium text-ink shadow-card" : "text-ink-2 hover:text-ink"}`;
 
   return (
-    <div className="min-h-screen bg-plane">
+    <div className="flex min-h-screen flex-col bg-plane">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 btn-primary">
         Skip to content
       </a>
-      {/* Mobile top bar */}
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-hair bg-plane px-4 py-3 backdrop-blur lg:hidden">
-        <Logo />
-        <button className="btn-ghost" aria-expanded={open} aria-controls="mobile-nav" onClick={() => setOpen((o) => !o)}>
-          {open ? "Close" : "Menu"}
-        </button>
+      <header className="sticky top-0 z-30 border-b border-hair bg-plane">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+          <Logo />
+          <nav className="hidden items-center gap-1 sm:flex">
+            {NAV.map((n) => <NavLink key={n.to} to={n.to} end={n.to === "/"} className={linkCls}>{n.label}</NavLink>)}
+          </nav>
+          <button className="btn-ghost sm:hidden" aria-expanded={open} aria-controls="mobile-nav" onClick={() => setOpen((o) => !o)}>
+            {open ? "Close" : "Menu"}
+          </button>
+        </div>
+        {open && (
+          <nav id="mobile-nav" className="flex flex-col gap-1 border-t border-hair px-4 py-3 sm:hidden" onClick={() => setOpen(false)}>
+            {NAV.map((n) => <NavLink key={n.to} to={n.to} end={n.to === "/"} className={linkCls}>{n.label}</NavLink>)}
+          </nav>
+        )}
       </header>
-      {open && (
-        <nav id="mobile-nav" className="border-b border-hair bg-plane px-4 pb-3 lg:hidden" onClick={() => setOpen(false)}>
-          {NAV.map((n) => (
-            <NavLink key={n.to} to={n.to} end={n.to === "/"} className={linkCls}>{n.label}</NavLink>
-          ))}
-        </nav>
-      )}
-      <div className="mx-auto flex max-w-7xl">
-        <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col justify-between px-4 py-6 lg:flex">
-          <div>
-            <div className="mb-8 px-3"><Logo /></div>
-            <nav className="space-y-1">
-              {NAV.map((n) => (
-                <NavLink key={n.to} to={n.to} end={n.to === "/"} className={linkCls}>{n.label}</NavLink>
-              ))}
-            </nav>
-          </div>
-          <p className="px-3 text-[11px] leading-relaxed text-ink-3">
-            Real observations only. FareWatch never books or pays and does not guarantee the lowest price.
-          </p>
-        </aside>
-        <main id="main" key={loc.pathname} className="relative z-10 min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/flights" element={<FlightDetails />} />
-            <Route path="/flights/:id" element={<FlightDetails />} />
-            <Route path="/compare" element={<Compare />} />
-            <Route path="/history" element={<History />} />
-            <Route path="/alerts" element={<Alerts />} />
-            <Route path="/extras" element={<Extras />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/about" element={<About />} />
-            <Route path="*" element={<p className="text-sm text-ink-2">Page not found.</p>} />
-          </Routes>
-        </main>
-      </div>
+
+      <main id="main" key={loc.pathname} className="relative z-10 mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 lg:py-10">
+        <Routes>
+          <Route path="/" element={<Explore />} />
+          <Route path="/trips" element={<Trips />} />
+          <Route path="/trips/new-year" element={<Dashboard />} />
+          <Route path="/route/:origin/:destination/:date" element={<RoutePage />} />
+          <Route path="/compare" element={<Compare />} />
+          <Route path="/flights/*" element={<Navigate to="/trips/new-year" replace />} />
+          <Route path="*" element={<p className="text-sm text-ink-2">Page not found. <Link className="text-accent-ink" to="/">Go to Explore</Link></p>} />
+        </Routes>
+      </main>
+
+      <footer className="border-t border-hair">
+        <div className="mx-auto max-w-6xl px-4 py-5 text-[11px] leading-relaxed text-ink-3 sm:px-6">
+          FareWatch shows real fares observed on Google Flights (via SerpApi) or entered by hand. It never books or pays,
+          and it cannot guarantee the lowest price. Not affiliated with any airline or with Google.
+        </div>
+      </footer>
     </div>
   );
 }

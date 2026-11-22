@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from functools import lru_cache
 from datetime import date, time
 
 from sqlalchemy import select
@@ -48,13 +49,56 @@ def airline_code(flight_number: str) -> str:
     return normalize_flight_number(flight_number)[:2]
 
 
+@lru_cache(maxsize=1)
+def _airport_db() -> dict[str, dict]:
+    """IATA airport database (airportsdata, MIT licence): name, city, country, IANA timezone."""
+    import airportsdata
+
+    return airportsdata.load("IATA")
+
+
+def airport_info(code: str) -> dict[str, str] | None:
+    code = (code or "").upper()
+    if code in AIRPORTS:
+        return {"code": code, "country": "", **AIRPORTS[code]}
+    row = _airport_db().get(code)
+    if not row or not row.get("tz"):
+        return None
+    return {"code": code, "name": row["name"], "city": row["city"] or row["name"], "tz": row["tz"],
+            "country": row.get("country", "")}
+
+
 def airport_tz(code: str) -> str:
-    info = AIRPORTS.get(code.upper())
+    info = airport_info(code)
     if not info:
-        raise ValueError(
-            f"Unknown airport {code!r}; add it (with its IANA timezone) to AIRPORTS in backend/app/flights.py"
-        )
+        raise ValueError(f"Unknown airport code {code!r}")
     return info["tz"]
+
+
+def search_airports(query: str, limit: int = 10, boost: set[str] | None = None) -> list[dict[str, str]]:
+    """Airport lookup by IATA code, city or name. ``boost`` codes (e.g. destinations with known
+    fares) are listed first within each match tier."""
+    boost = boost or set()
+    q = query.strip().lower()
+    if len(q) < 2:
+        return []
+    exact, starts, contains = [], [], []
+    for code, row in _airport_db().items():
+        city, name = (row.get("city") or "").lower(), (row.get("name") or "").lower()
+        item = {"code": code, "city": row.get("city") or row["name"], "name": row["name"],
+                "country": row.get("country", "")}
+        if code.lower() == q:
+            exact.append(item)
+        elif city.startswith(q) or name.startswith(q):
+            starts.append(item)
+        elif q in city or q in name:
+            contains.append(item)
+    def rank(i: dict[str, str]) -> tuple:
+        return (i["code"] not in boost, i["code"] not in AIRPORTS, i["city"], i["code"])
+
+    starts.sort(key=rank)
+    contains.sort(key=rank)
+    return (exact + starts + contains)[:limit]
 
 
 @dataclass(frozen=True)

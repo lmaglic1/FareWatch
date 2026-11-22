@@ -456,3 +456,103 @@ export const api = {
   deleteFee: (id: number) => request<void>(`/api/fees/${id}`, { method: "DELETE" }),
   feeComparison: () => request<FeeComparison>("/api/fees/comparison"),
 };
+
+// --- Explore / routes / trips ------------------------------------------------
+
+export interface Airport {
+  code: string;
+  city: string;
+  name: string;
+  country: string;
+  tz?: string;
+}
+
+export interface ExploreDestination {
+  name: string;
+  country: string | null;
+  airport_code: string;
+  airport_name: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  price: Money;
+  currency: string;
+  airline: string | null;
+  airline_code: string | null;
+  stops: number | null;
+  duration_minutes: number | null;
+  thumbnail: string | null;
+}
+
+export type TripType = "one_way" | "round_trip";
+
+export interface ExploreView {
+  origin: string;
+  status?: string;
+  message?: string;
+  snapshot: {
+    id: number;
+    trip_type: TripType;
+    month: number;
+    travel_duration: number;
+    currency: string;
+    passengers: number;
+    fetched_at_utc: string;
+  } | null;
+  destinations: ExploreDestination[];
+  next_refresh_utc: string | null;
+  can_refresh: boolean;
+}
+
+export interface RouteFlight {
+  flight: Flight;
+  analysis: FlightAnalysis;
+  observations: Observation[];
+}
+
+export interface RouteView {
+  demo: boolean;
+  origin: Airport | null;
+  destination: Airport | null;
+  date: string;
+  trip: { id: number; kind: string; last_checked_utc: string | null } | null;
+  flights: RouteFlight[];
+  booking_links: BookingLink[];
+}
+
+export interface SearchOutcome {
+  route: string;
+  date: string;
+  status: string;
+  message: string;
+  observations_created?: number;
+}
+
+export interface Trip {
+  id: number;
+  kind: "target" | "user";
+  origin: Airport | null;
+  destination: Airport | null;
+  date: string;
+  last_checked_utc: string | null;
+  latest_price: Money | null;
+  latest_currency: string | null;
+  latest_flight_number: string | null;
+}
+
+function exploreQuery(tripType: TripType, month: number, duration: number) {
+  return `trip_type=${tripType}&month=${month}&duration=${duration}`;
+}
+
+export const exploreApi = {
+  airports: (q: string) => request<Airport[]>(`/api/airports?q=${encodeURIComponent(q)}`),
+  explore: (t: TripType, month: number, duration: number) =>
+    request<ExploreView>(`/api/explore?${exploreQuery(t, month, duration)}`),
+  refresh: (t: TripType, month: number, duration: number) =>
+    request<ExploreView>(`/api/explore/refresh?${exploreQuery(t, month, duration)}`, { method: "POST" }),
+  route: (o: string, d: string, date: string) =>
+    request<RouteView>(`/api/route?origin=${o}&destination=${d}&date=${date}`),
+  searchRoute: (o: string, d: string, date: string) =>
+    request<SearchOutcome>("/api/route/search", json("POST", { origin: o, destination: d, date })),
+  trips: () => request<Trip[]>("/api/trips"),
+  removeTrip: (id: number) => request<{ ok: boolean }>(`/api/trips/${id}`, { method: "DELETE" }),
+};
